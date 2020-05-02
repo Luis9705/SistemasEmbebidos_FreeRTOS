@@ -50,6 +50,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -58,6 +60,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define PWM_FREQUENCY 10000
+#define PWM_PRESCALER 1
 #define LED_BOARD_Pin GPIO_PIN_13
 #define LED_BOARD_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
