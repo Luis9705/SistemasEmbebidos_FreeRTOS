@@ -64,6 +64,10 @@ void Error_Handler(void);
 #define PWM_PRESCALER 1
 #define LED_BOARD_Pin GPIO_PIN_13
 #define LED_BOARD_GPIO_Port GPIOC
+#define LED_MIN_Pin GPIO_PIN_5
+#define LED_MIN_GPIO_Port GPIOB
+#define LED_MAX_Pin GPIO_PIN_8
+#define LED_MAX_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 #define I2C_ADC
 /* USER CODE END Private defines */

@@ -74,16 +74,41 @@ const osThreadAttr_t printInfo_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
+/* Definitions for updateTempLeds */
+osThreadId_t updateTempLedsHandle;
+const osThreadAttr_t updateTempLeds_attributes = {
+  .name = "updateTempLeds",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 /* Definitions for temperatureMutex */
 osMutexId_t temperatureMutexHandle;
 const osMutexAttr_t temperatureMutex_attributes = {
   .name = "temperatureMutex"
+};
+/* Definitions for updateLEDSemaphore */
+osSemaphoreId_t updateLEDSemaphoreHandle;
+const osSemaphoreAttr_t updateLEDSemaphore_attributes = {
+  .name = "updateLEDSemaphore"
 };
 /* USER CODE BEGIN PV */
 
 static const uint8_t SLAVE_ADDRESS_LCD = 0x27; // Use 8-bit address
 uint16_t temp;
 int dimPercentage = 50;
+
+char * led_status[2] =  {"On",  "Off"};
+
+typedef enum  {
+  ON,
+  OFF,
+} led_statusType;
+
+led_statusType min_led = OFF;
+led_statusType max_led = OFF;
+
+int MaxTempTh = 35;
+int MinTempTh = 25;
 
 /* USER CODE END PV */
 
@@ -97,6 +122,7 @@ static void MX_TIM2_Init(void);
 void StartDefaultTask(void *argument);
 void readTempTask(void *argument);
 void printInfoTask(void *argument);
+void updateTempLedsTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -173,6 +199,10 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* creation of updateLEDSemaphore */
+  updateLEDSemaphoreHandle = osSemaphoreNew(1, 1, &updateLEDSemaphore_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
@@ -194,6 +224,9 @@ int main(void)
 
   /* creation of printInfo */
   printInfoHandle = osThreadNew(printInfoTask, NULL, &printInfo_attributes);
+
+  /* creation of updateTempLeds */
+  updateTempLedsHandle = osThreadNew(updateTempLedsTask, NULL, &updateTempLeds_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -451,12 +484,22 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_BOARD_GPIO_Port, LED_BOARD_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, LED_MIN_Pin|LED_MAX_Pin, GPIO_PIN_SET);
+
   /*Configure GPIO pin : LED_BOARD_Pin */
   GPIO_InitStruct.Pin = LED_BOARD_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_BOARD_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED_MIN_Pin LED_MAX_Pin */
+  GPIO_InitStruct.Pin = LED_MIN_Pin|LED_MAX_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 
@@ -536,6 +579,38 @@ void printInfoTask(void *argument)
     osDelay(500);
   }
   /* USER CODE END printInfoTask */
+}
+
+/* USER CODE BEGIN Header_updateTempLedsTask */
+/**
+* @brief Function implementing the updateTempLeds thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_updateTempLedsTask */
+void updateTempLedsTask(void *argument)
+{
+  /* USER CODE BEGIN updateTempLedsTask */
+  /* Infinite loop */
+  for(;;)
+  {
+	if (temp > MaxTempTh) {
+		HAL_GPIO_WritePin(GPIOB, LED_MAX_Pin, GPIO_PIN_RESET);
+		max_led = ON;
+	} else {
+		HAL_GPIO_WritePin(GPIOB, LED_MAX_Pin, GPIO_PIN_SET);
+		max_led = OFF;
+	}
+	if (temp < MinTempTh) {
+		HAL_GPIO_WritePin(GPIOB, LED_MIN_Pin, GPIO_PIN_RESET);
+		min_led = ON;
+	} else {
+		HAL_GPIO_WritePin(GPIOB, LED_MIN_Pin, GPIO_PIN_SET);
+		min_led = OFF;
+	}
+    osDelay(1);
+  }
+  /* USER CODE END updateTempLedsTask */
 }
 
  /**
