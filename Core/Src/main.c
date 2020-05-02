@@ -25,6 +25,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "LCD.h"
+#include "temp_sensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +43,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 I2C_HandleTypeDef hi2c1;
 
 /* Definitions for defaultTask */
@@ -51,9 +54,29 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
+/* Definitions for read_Temp_Task */
+osThreadId_t read_Temp_TaskHandle;
+const osThreadAttr_t read_Temp_Task_attributes = {
+  .name = "read_Temp_Task",
+  .priority = (osPriority_t) osPriorityAboveNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for printInfo */
+osThreadId_t printInfoHandle;
+const osThreadAttr_t printInfo_attributes = {
+  .name = "printInfo",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for temperatureMutex */
+osMutexId_t temperatureMutexHandle;
+const osMutexAttr_t temperatureMutex_attributes = {
+  .name = "temperatureMutex"
+};
 /* USER CODE BEGIN PV */
 
-static const uint8_t SLAVE_ADDRESS_LCD = 0x27 << 1; // Use 8-bit address
+static const uint8_t SLAVE_ADDRESS_LCD = 0x27; // Use 8-bit address
+uint16_t temp;
 
 /* USER CODE END PV */
 
@@ -61,7 +84,10 @@ static const uint8_t SLAVE_ADDRESS_LCD = 0x27 << 1; // Use 8-bit address
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
+void readTempTask(void *argument);
+void printInfoTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -101,19 +127,32 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
-  LCD_Init(hi2c1, SLAVE_ADDRESS_LCD);
+  temp_sensor_setup(&hi2c1);
+
+  //temp_sensor_setup(&hadc1);
+
+
+
+  LCD_Init(&hi2c1, SLAVE_ADDRESS_LCD);
 
   LCD_Set_Cursor(1, 1);
   LCD_printf("Initializing");
   LCD_Set_Cursor(2, 1);
-  LCD_printf("Temp sensor");
+  LCD_printf("Temp Sensor");
+
+  HAL_Delay(2000);
+  LCD_CMD(LCD_CLEAR);
 
   /* USER CODE END 2 */
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of temperatureMutex */
+  temperatureMutexHandle = osMutexNew(&temperatureMutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -134,6 +173,12 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of read_Temp_Task */
+  read_Temp_TaskHandle = osThreadNew(readTempTask, NULL, &read_Temp_Task_attributes);
+
+  /* creation of printInfo */
+  printInfoHandle = osThreadNew(printInfoTask, NULL, &printInfo_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -162,6 +207,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the CPU, AHB and APB busses clocks 
   */
@@ -189,6 +235,57 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+  /** Common config 
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel 
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -273,6 +370,58 @@ void StartDefaultTask(void *argument)
 	osDelay(1000);
   }
   /* USER CODE END 5 */ 
+}
+
+/* USER CODE BEGIN Header_readTempTask */
+/**
+* @brief Function implementing the read_Temp_Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_readTempTask */
+void readTempTask(void *argument)
+{
+  /* USER CODE BEGIN readTempTask */
+  /* Infinite loop */
+
+  for(;;)
+  {
+
+	osMutexAcquire(temperatureMutexHandle, osWaitForever); // try to acquire mutex
+	temp = temp_sensor_read();
+	osMutexRelease(temperatureMutexHandle);
+
+    osDelay(100);
+  }
+  /* USER CODE END readTempTask */
+}
+
+/* USER CODE BEGIN Header_printInfoTask */
+/**
+* @brief Function implementing the printInfo thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_printInfoTask */
+void printInfoTask(void *argument)
+{
+  /* USER CODE BEGIN printInfoTask */
+  /* Infinite loop */
+
+	uint16_t temp_to_print;
+  for(;;)
+  {
+
+	osMutexAcquire(temperatureMutexHandle, osWaitForever); // try to acquire mutex
+	temp_to_print = temp;
+	osMutexRelease(temperatureMutexHandle);
+
+	LCD_Set_Cursor(1, 1);
+	LCD_printf("Temp: %d", temp_to_print);
+
+    osDelay(500);
+  }
+  /* USER CODE END printInfoTask */
 }
 
  /**

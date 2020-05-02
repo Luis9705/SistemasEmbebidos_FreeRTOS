@@ -12,14 +12,14 @@
 //based and adapted from https://deepbluembedded.com/interfacing-i2c-lcd-16x2-tutorial-with-pic-microcontrollers-mplab-xc8/
 
 unsigned char RS, i2c_add, BackLight_State = LCD_BACKLIGHT;
-I2C_HandleTypeDef hi2c;
+I2C_HandleTypeDef * hi2c;
 /**
  * Initializes the LCD and configures it
  * @param[in] I2C_Add - Address for I2C communication
  */
-void LCD_Init(I2C_HandleTypeDef HI2C, unsigned char I2C_Add)
+void LCD_Init(I2C_HandleTypeDef * HI2C, unsigned char I2C_Add)
 {
-  i2c_add = I2C_Add;
+  i2c_add = I2C_Add << 1;
   hi2c = HI2C;
   IO_Expander_Write(0x00);
   HAL_Delay(50);  // wait for >40ms
@@ -49,7 +49,7 @@ void IO_Expander_Write(unsigned char Data)
 {
 
 	unsigned char buff[1] = {Data| BackLight_State};
-	HAL_I2C_Master_Transmit (&hi2c, i2c_add,(uint8_t *) buff, 1, HAL_MAX_DELAY);
+	HAL_I2C_Master_Transmit (hi2c, i2c_add,(uint8_t *) buff, 1, HAL_MAX_DELAY);
 
 }
 
