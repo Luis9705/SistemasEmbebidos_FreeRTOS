@@ -10,8 +10,7 @@
 
 
 #include <stdint.h>
-
-#define I2C_ADC
+#include "main.h"
 
 #ifdef I2C_ADC
 #include "i2c_adc.h"
