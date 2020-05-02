@@ -37,6 +37,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define FLAGS_MSK1 0x00000001U
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -86,12 +89,20 @@ osMutexId_t temperatureMutexHandle;
 const osMutexAttr_t temperatureMutex_attributes = {
   .name = "temperatureMutex"
 };
+/* Definitions for ledMutex */
+osMutexId_t ledMutexHandle;
+const osMutexAttr_t ledMutex_attributes = {
+  .name = "ledMutex"
+};
 /* Definitions for updateLEDSemaphore */
 osSemaphoreId_t updateLEDSemaphoreHandle;
 const osSemaphoreAttr_t updateLEDSemaphore_attributes = {
   .name = "updateLEDSemaphore"
 };
 /* USER CODE BEGIN PV */
+
+osEventFlagsId_t updateLED_EventFlag_id;                        // event flags id
+
 
 static const uint8_t SLAVE_ADDRESS_LCD = 0x27; // Use 8-bit address
 uint16_t temp;
@@ -195,6 +206,9 @@ int main(void)
   /* creation of temperatureMutex */
   temperatureMutexHandle = osMutexNew(&temperatureMutex_attributes);
 
+  /* creation of ledMutex */
+  ledMutexHandle = osMutexNew(&ledMutex_attributes);
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -205,6 +219,9 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
+
+  updateLED_EventFlag_id = osEventFlagsNew(NULL);
+
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -537,14 +554,18 @@ void readTempTask(void *argument)
 {
   /* USER CODE BEGIN readTempTask */
   /* Infinite loop */
+	uint16_t new_temp;
 
   for(;;)
   {
+	  new_temp = temp_sensor_read();
+	  if(new_temp != temp){
+		osMutexAcquire(temperatureMutexHandle, osWaitForever); // try to acquire mutex
+		temp = new_temp;
+		osMutexRelease(temperatureMutexHandle);
 
-	osMutexAcquire(temperatureMutexHandle, osWaitForever); // try to acquire mutex
-	temp = temp_sensor_read();
-	osMutexRelease(temperatureMutexHandle);
-
+		osEventFlagsSet(updateLED_EventFlag_id, FLAGS_MSK1); //notify the led task
+	  }
     osDelay(100);
   }
   /* USER CODE END readTempTask */
@@ -563,6 +584,7 @@ void printInfoTask(void *argument)
   /* Infinite loop */
 
 	uint16_t temp_to_print;
+	led_statusType max_led_status, min_led_status;
   for(;;)
   {
 
@@ -571,10 +593,21 @@ void printInfoTask(void *argument)
 	temp_to_print = temp;
 	osMutexRelease(temperatureMutexHandle);
 
-	LCD_Set_Cursor(1, 1);
-	LCD_printf("Temp: %d", temp_to_print);
+	osMutexAcquire(ledMutexHandle, osWaitForever); // try to acquire mutex
+	max_led_status = max_led;
+	min_led_status = min_led;
+	osMutexRelease(ledMutexHandle);
 
-	uart_printf("Temp: %d\n\r", temp_to_print);
+    LCD_Set_Cursor(1, 1);
+    LCD_printf("Temp: %d%cC", temp_to_print, 223);
+    LCD_Set_Cursor(2, 1);
+    LCD_printf("LED dimm: %d%%", dimPercentage);
+
+    uart_printf("Temp: %dC,  MaxTempTh: %dC,  MinTempTh: %dC,  "
+                    "MaxTemp: %s,  MinTemp: %s,  Led Intensity: %d%%\n\r"
+					,  temp_to_print,  MaxTempTh,  MinTempTh,  \
+					led_status[max_led_status], led_status[min_led_status],  \
+					dimPercentage);
 
     osDelay(500);
   }
@@ -594,6 +627,7 @@ void updateTempLedsTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	  osEventFlagsWait(updateLED_EventFlag_id, FLAGS_MSK1, osFlagsWaitAny, osWaitForever);
 	if (temp > MaxTempTh) {
 		HAL_GPIO_WritePin(GPIOB, LED_MAX_Pin, GPIO_PIN_RESET);
 		max_led = ON;
@@ -608,7 +642,6 @@ void updateTempLedsTask(void *argument)
 		HAL_GPIO_WritePin(GPIOB, LED_MIN_Pin, GPIO_PIN_SET);
 		min_led = OFF;
 	}
-    osDelay(1);
   }
   /* USER CODE END updateTempLedsTask */
 }
