@@ -26,9 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
-#include "temp_sensor.h"
-#include "LCD.h"
-#include "uc_uart.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +47,9 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
+extern int MaxTempTh, MinTempTh,dimPercentage;
+char * led_status[2] =  {"On",  "Off"};
+
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -61,14 +62,14 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t temp_sensing_TaHandle;
 const osThreadAttr_t temp_sensing_Ta_attributes = {
   .name = "temp_sensing_Ta",
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityHigh,
   .stack_size = 128 * 4
 };
 /* Definitions for displayTemp */
 osThreadId_t displayTempHandle;
 const osThreadAttr_t displayTemp_attributes = {
   .name = "displayTemp",
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityAboveNormal,
   .stack_size = 128 * 4
 };
 /* Definitions for thermostatLEDs */
@@ -106,6 +107,11 @@ const osMessageQueueAttr_t LCDQueue_attributes = {
 osMessageQueueId_t UARTQueueHandle;
 const osMessageQueueAttr_t UARTQueue_attributes = {
   .name = "UARTQueue"
+};
+/* Definitions for thermostatLEDQueue */
+osMessageQueueId_t thermostatLEDQueueHandle;
+const osMessageQueueAttr_t thermostatLEDQueue_attributes = {
+  .name = "thermostatLEDQueue"
 };
 /* Definitions for temperatureMutex */
 osMutexId_t temperatureMutexHandle;
@@ -179,13 +185,16 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the queue(s) */
   /* creation of tempQueue */
-  tempQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &tempQueue_attributes);
+  tempQueueHandle = osMessageQueueNew (4, sizeof(uint16_t), &tempQueue_attributes);
 
   /* creation of LCDQueue */
-  LCDQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &LCDQueue_attributes);
+  LCDQueueHandle = osMessageQueueNew (4, sizeof(uint16_t), &LCDQueue_attributes);
 
   /* creation of UARTQueue */
-  UARTQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &UARTQueue_attributes);
+  UARTQueueHandle = osMessageQueueNew (4, sizeof(uint16_t), &UARTQueue_attributes);
+
+  /* creation of thermostatLEDQueue */
+  thermostatLEDQueueHandle = osMessageQueueNew (4, sizeof(uint16_t), &thermostatLEDQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -253,7 +262,7 @@ void tempSensingTask(void *argument)
 	  //sensing temp
 	  uint16_t  temp = temp_sensor_read();
 
-	  HAL_GPIO_TogglePin(LED_BOARD_GPIO_Port, LED_BOARD_Pin); // process data
+	  sensingLED_TOGGLE(); // process data
 
 	  //send to queue
 	  osMessageQueuePut(tempQueueHandle, &temp, 0U, osWaitForever);
@@ -286,6 +295,8 @@ void displayTempTask(void *argument)
 
 			osMessageQueuePut(UARTQueueHandle, &temp, 0U, osWaitForever);
 
+			osMessageQueuePut(thermostatLEDQueueHandle, &temp, 0U, osWaitForever);
+
 
 		}
 
@@ -304,9 +315,20 @@ void thermostatLEDsTask(void *argument)
 {
   /* USER CODE BEGIN thermostatLEDsTask */
   /* Infinite loop */
+	uint16_t temp ;
+	osStatus_t status;
   for(;;)
   {
-    osDelay(1);
+	status = osMessageQueueGet(thermostatLEDQueueHandle, &temp, NULL, osWaitForever);   // wait for message
+	if (status == osOK) {
+
+		(temp > MaxTempTh) ? maxTempLED_ON() : maxTempLED_OFF();
+
+		(temp < MinTempTh) ? minTempLED_ON() : minTempLED_OFF();
+
+
+	}
+
   }
   /* USER CODE END thermostatLEDsTask */
 }
@@ -331,6 +353,8 @@ void displayLCDTask(void *argument)
 
 		LCD_Set_Cursor(1, 1);
 		LCD_printf("Temp: %d%cC", temp, 223);
+		LCD_Set_Cursor(2, 1);
+		LCD_printf("LED dimm: %d%%", dimPercentage);
 
 	}
 
@@ -357,11 +381,13 @@ void displayUARTTask(void *argument)
 	status = osMessageQueueGet(UARTQueueHandle, &temp, NULL, osWaitForever);   // wait for message
 	if (status == osOK) {
 
-		uart_printf("Temp: %dC\n\r",  temp);
+		print("Temp: %dC,  MaxTempTh: %dC,  MinTempTh: %dC,  "
+                "MaxTemp: %s,  MinTemp: %s,  Led Intensity: %d%%\n\r"
+				,  temp,  MaxTempTh,  MinTempTh,  \
+				led_status[getMaxLED_STATUS()], led_status[getMinLED_STATUS()],  \
+				dimPercentage);
 
 	}
-
-
 
   }
   /* USER CODE END displayUARTTask */

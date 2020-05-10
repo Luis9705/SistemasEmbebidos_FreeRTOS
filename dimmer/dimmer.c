@@ -8,7 +8,7 @@
 /// @file dimmer.c
 // Copyright 2020 Equipo 2
 #include "dimmer.h"
-
+#include "tim.h"
 #include "main.h"
 
 TIM_HandleTypeDef * htim;
@@ -21,9 +21,10 @@ static void setPWM(TIM_HandleTypeDef timer, uint32_t channel, uint16_t period, u
 /**
  * Initializes the timer, sets it up as a PWM and starts the timer.
  */
-void dimmer_setup(void * init_struct) {
+void dimmer_setup(void) {
 
-	htim = (TIM_HandleTypeDef *)init_struct;
+	MX_TIM2_Init();
+	htim = &htim2;
 }
 
 /**

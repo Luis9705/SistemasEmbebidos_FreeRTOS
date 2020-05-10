@@ -6,14 +6,16 @@
  */
 
 #include "uc_uart.h"
+#include "usart.h"
 #include "miniprintf.h"
 #include "main.h"
 #include "string.h"
 
 UART_HandleTypeDef * huart;
 
-void uart_setup(void * init_struct){
-	huart = (UART_HandleTypeDef *)init_struct;
+void uart_setup(void){
+	MX_USART1_UART_Init();
+	huart = &huart1;
 }
 
 void uart_putc(char ch){

@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-void dimmer_setup(void * init_struct);
+void dimmer_setup(void);
 void dimmer_update_percentage(uint16_t percentage);
 
 #endif /* DIMMER_H_ */

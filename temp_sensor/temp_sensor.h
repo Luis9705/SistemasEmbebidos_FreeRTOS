@@ -19,7 +19,7 @@
 #endif
 
 
-void temp_sensor_setup(void * init_struct);
+void temp_sensor_setup(void);
 uint16_t temp_sensor_read(void);
 
 

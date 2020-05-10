@@ -7,10 +7,11 @@
 
 /// @file i2c_adc.c
 //  Copyright 2020 Copyright Equipo 2
-#include "i2c_adc.h"
-#include "main.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "i2c_adc.h"
+#include "main.h"
+#include "i2c.h"
 
 I2C_HandleTypeDef * hi2c;
 
@@ -33,9 +34,11 @@ void adc_pin_setup(void) {}
 /**
  * Sets up the adc using I2C communication.
  */
-void adc_setup( void * init_struct) {
+void adc_setup(void) {
 
-	hi2c = (I2C_HandleTypeDef *) init_struct;
+	MX_I2C1_Init();
+
+	hi2c = &hi2c1;
 
     unsigned char buff[3] = {config_reg,config_msb, config_lsb};
 

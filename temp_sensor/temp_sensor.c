@@ -15,9 +15,9 @@
 /**
  * Sets up the ADC peripherals needed for the temperature sensor.
  */
-void temp_sensor_setup(void * init_struct) {
+void temp_sensor_setup(void) {
     adc_pin_setup();
-    adc_setup(init_struct);
+    adc_setup();
 }
 
 /**

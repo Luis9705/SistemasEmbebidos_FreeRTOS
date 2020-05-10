@@ -29,10 +29,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "LCD.h"
-#include "temp_sensor.h"
-#include "uc_uart.h"
-#include "dimmer.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,8 +39,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-#define FLAGS_MSK1 0x00000001U
 
 /* USER CODE END PD */
 
@@ -56,25 +51,10 @@
 
 /* USER CODE BEGIN PV */
 
-osEventFlagsId_t updateLED_EventFlag_id;                        // event flags id
-
-
-static const uint8_t SLAVE_ADDRESS_LCD = 0x27; // Use 8-bit address
-uint16_t temp;
 int dimPercentage = 50;
 
-char * led_status[2] =  {"On",  "Off"};
-
-typedef enum  {
-  ON,
-  OFF,
-} led_statusType;
-
-led_statusType min_led = OFF;
-led_statusType max_led = OFF;
-
-int MaxTempTh = 35;
-int MinTempTh = 25;
+int MaxTempTh = 31;
+int MinTempTh = 29;
 
 /* USER CODE END PV */
 
@@ -90,34 +70,26 @@ void MX_FREERTOS_Init(void);
 
 int main(void)
 {
-	HAL_Init();
 
+	HAL_Init();
 	SystemClock_Config();
 
-	MX_GPIO_Init();
-	MX_USART1_UART_Init();
-	HAL_GPIO_WritePin(LED_BOARD_GPIO_Port, LED_BOARD_Pin, GPIO_PIN_SET);
-	MX_I2C1_Init();
+	LED_setup();
+	temp_sensor_setup();
+	print_setup();
 
+	LCD_Init();
+	LCD_Set_Cursor(1, 1);
+	LCD_printf("Initializing");
+	LCD_Set_Cursor(2, 1);
+	LCD_printf("Temp Sensor");
+	HAL_Delay(2000);
+	LCD_CMD(LCD_CLEAR);
 
-  LCD_Init(&hi2c1, SLAVE_ADDRESS_LCD);
+	dimmer_setup();
+	dimmer_update_percentage(dimPercentage);
 
-  LCD_Set_Cursor(1, 1);
-  LCD_printf("Initializing");
-  LCD_Set_Cursor(2, 1);
-  LCD_printf("Temp Sensor");
-
-
-  uart_setup(&huart1);
-
-  HAL_Delay(2000);
-  LCD_CMD(LCD_CLEAR);
-
-
-  MX_TIM3_Init();
-  HAL_TIM_Base_Start_IT(&htim3);
-
-	temp_sensor_setup(&hi2c1);
+	timer_setup();
 
 	osKernelInitialize();
 	MX_FREERTOS_Init();

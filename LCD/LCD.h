@@ -30,7 +30,7 @@
 #define LCD_SHIFT_RIGHT       0x1E
 #define LCD_TYPE              2 // 0 -> 5x7 | 1 -> 5x10 | 2 -> 2 lines
 
-void LCD_Init(I2C_HandleTypeDef * HI2C, unsigned char I2C_Add);
+void LCD_Init(void);
 void IO_Expander_Write(unsigned char Data);
 void LCD_Write_4Bit(unsigned char Nibble);
 void LCD_CMD(unsigned char CMD);
