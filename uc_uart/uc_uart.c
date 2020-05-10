@@ -10,12 +10,32 @@
 #include "miniprintf.h"
 #include "main.h"
 #include "string.h"
+#include <stdbool.h>
 
 UART_HandleTypeDef * huart;
 
+bool uart_enabled = false;
+
 void uart_setup(void){
-	MX_USART1_UART_Init();
-	huart = &huart1;
+	if(!uart_enabled){
+		MX_USART1_UART_Init();
+		huart = &huart1;
+		uart_enabled = true;
+	}
+
+}
+
+void uart_enable_RX_IT(void){
+	if(!uart_enabled){
+		MX_USART1_UART_Init();
+		huart = &huart1;
+		uart_enabled = true;
+	}
+	MODIFY_REG(huart->Instance->CR1,
+	             (uint32_t)(USART_CR1_RXNEIE),
+	             (1<<5));
+	HAL_NVIC_SetPriority(USART1_IRQn, 5, 5);
+	HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
 void uart_putc(char ch){
@@ -26,6 +46,8 @@ void uart_putc(char ch){
 void uart_puts(char str[]){
 	HAL_UART_Transmit(huart, (uint8_t *) str, strlen(str), 10);
 }
+
+
 int uart_printf(const char *format, ...){
     va_list args;
     int rc;

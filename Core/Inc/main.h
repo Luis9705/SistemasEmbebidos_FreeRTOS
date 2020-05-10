@@ -38,6 +38,7 @@ extern "C" {
 #include "timer.h"
 #include "dimmer.h"
 #include "LED.h"
+#include "uc_uart.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

@@ -56,6 +56,8 @@ int dimPercentage = 50;
 int MaxTempTh = 31;
 int MinTempTh = 29;
 
+uint8_t byte;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,8 +77,12 @@ int main(void)
 	SystemClock_Config();
 
 	LED_setup();
+
+
 	temp_sensor_setup();
 	print_setup();
+
+	uart_enable_RX_IT();
 
 	LCD_Init();
 	LCD_Set_Cursor(1, 1);
@@ -90,6 +96,10 @@ int main(void)
 	dimmer_update_percentage(dimPercentage);
 
 	timer_setup();
+
+
+
+//	HAL_UART_Receive_IT(&huart1, &byte, 1);
 
 	osKernelInitialize();
 	MX_FREERTOS_Init();
