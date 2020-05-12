@@ -5,6 +5,9 @@
  *      Author: FLL1GA
  */
 
+/// @file LCD.h
+/// @brief LCD header file.
+///
 #ifndef LCD_H_
 #define LCD_H_
 

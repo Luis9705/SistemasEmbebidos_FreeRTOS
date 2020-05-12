@@ -4,7 +4,8 @@
  *  Created on: May 2, 2020
  *      Author: FLL1GA
  */
-
+/// @file dimmer.h
+/// @brief dimmer header file.
 #ifndef DIMMER_H_
 #define DIMMER_H_
 

@@ -6,6 +6,7 @@
  */
 
 /// @file i2c_adc.c
+/// @brief Functions to use I2C_ADC
 //  Copyright 2020 Copyright Equipo 2
 #include <stdint.h>
 #include <stdbool.h>
@@ -13,26 +14,28 @@
 #include "main.h"
 #include "i2c.h"
 
-I2C_HandleTypeDef * hi2c;
+I2C_HandleTypeDef * hi2c;						  ///<
 
-uint8_t ads1115_addr = 0b01001000 <<1;                /// <I2C ADC Address.
-uint8_t conversion_reg = 0x0;                     /// <Conversion register
+uint8_t ads1115_addr = 0b01001000 <<1;            ///<I2C ADC Address.
+uint8_t conversion_reg = 0x0;                     ///<Conversion register
 // address.
-uint8_t config_reg = 0x1;                         /// <Configuration register
+uint8_t config_reg = 0x1;                         ///<Configuration register
 // address.
 uint8_t config_msb = 0b11000010;  // 0b11000100;     /// <Start a single
 // conversion (when in power-down state). AINP = AIN0 and AINN = GND,
 // FSR = ±4.096 V, Continuous-conversion mode.
-uint8_t config_lsb = 0b10000011;                  /// <128 SPS, Disable
+uint8_t config_lsb = 0b10000011;                  ///<128 SPS, Disable
 // comparator and set ALERT/RDY pin to high-impedance.
 
 /**
- * Sets up the ADC pins needed.
+ * @brief Sets up the ADC pins needed.
+ * @retval None
  */
 void adc_pin_setup(void) {}
 
 /**
- * Sets up the adc using I2C communication.
+ * @brief Sets up the adc using I2C communication.
+ * @retval None
  */
 void adc_setup(void) {
 
@@ -50,8 +53,9 @@ void adc_setup(void) {
 }
 
 /**
- * Reads the value of the ADC.
+ * @brief Reads the value of the ADC.
  * @param[out] data
+ * @retval None
  */
 uint16_t adc_read(void) {
     uint8_t msb_data = 0x0;        /// MSB Read I2C byte
@@ -75,9 +79,10 @@ uint16_t adc_read(void) {
 }
 
 /**
- * Scales the adc value to a given voltage scale.
+ * @brief Scales the adc value to a given voltage scale.
  * @param[in] data
  * @param[out] scaled_value
+ * @retval None
  */
 float adc_convert_voltage(uint16_t data) {
     float scale = 125E-6;  // 62.5E-6;

@@ -159,6 +159,13 @@ const osThreadAttr_t UART_RX_attributes = {
   .priority = (osPriority_t) osPriorityHigh,
   .stack_size = 128 * 4
 };
+/* Definitions for testButton */
+osThreadId_t testButtonHandle;
+const osThreadAttr_t testButton_attributes = {
+  .name = "testButton",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 /* Definitions for tempQueue */
 osMessageQueueId_t tempQueueHandle;
 const osMessageQueueAttr_t tempQueue_attributes = {
@@ -217,6 +224,7 @@ void thermostatLEDsTask(void *argument);
 void displayLCDTask(void *argument);
 void displayUARTTask(void *argument);
 void UART_RX_Task(void *argument);
+void testButtonTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -296,6 +304,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of UART_RX */
   UART_RXHandle = osThreadNew(UART_RX_Task, NULL, &UART_RX_attributes);
+
+  /* creation of testButton */
+  testButtonHandle = osThreadNew(testButtonTask, NULL, &testButton_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -704,6 +715,24 @@ void UART_RX_Task(void *argument)
 
   }
   /* USER CODE END UART_RX_Task */
+}
+
+/* USER CODE BEGIN Header_testButtonTask */
+/**
+* @brief Function implementing the testButton thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_testButtonTask */
+void testButtonTask(void *argument)
+{
+  /* USER CODE BEGIN testButtonTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END testButtonTask */
 }
 
 /* Private application code --------------------------------------------------*/

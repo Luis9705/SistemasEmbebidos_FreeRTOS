@@ -4,6 +4,8 @@
  *  Created on: May 2, 2020
  *      Author: FLL1GA
  */
+/// @file uc_uart.h
+/// @brief uc_UART header functions.
 
 #ifndef UC_UART_H_
 #define UC_UART_H_
