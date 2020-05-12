@@ -4,13 +4,14 @@
  *  Created on: May 9, 2020
  *      Author: FLL1GA
  */
-
+/// @file LED.h
+/// @brief LED Header file.
 #ifndef LED_H_
 #define LED_H_
 
 typedef enum  {
-  LED_ON,
-  LED_OFF,
+  LED_ON, //!< LED_ON
+  LED_OFF,//!< LED_OFF
 } led_statusType;
 
 void LED_setup(void);

@@ -6,6 +6,7 @@
  */
 
 /// @file dimmer.c
+/// @brief Dimmer function files.
 // Copyright 2020 Equipo 2
 #include "dimmer.h"
 #include "tim.h"
@@ -19,7 +20,8 @@ static uint16_t get_pwm_percentage_counts(uint16_t period, uint16_t percentage);
 static void setPWM(TIM_HandleTypeDef timer, uint32_t channel, uint16_t period, uint16_t pulse);
 
 /**
- * Initializes the timer, sets it up as a PWM and starts the timer.
+ * @brief Initializes the timer, sets it up as a PWM and starts the timer.
+ * @retval None
  */
 void dimmer_setup(void) {
 
@@ -28,8 +30,9 @@ void dimmer_setup(void) {
 }
 
 /**
- * Updates the dimming intensity of the light.
+ * @brief Updates the dimming intensity of the light.
  * @param[in] percentage
+ * @retval None
  */
 void dimmer_update_percentage(uint16_t percentage) {
 
@@ -42,9 +45,10 @@ void dimmer_update_percentage(uint16_t percentage) {
 }
 
 /**
- * Calculates a percentage of dimming given a constant.
+ * @brief Calculates a percentage of dimming given a constant.
  * @param[in] percentage
  * @param[out] counts
+ * @return counts
  */
 static uint16_t get_pwm_percentage_counts(uint16_t period, uint16_t percentage) {
     uint16_t counts = (percentage*period) / 100;
@@ -55,7 +59,13 @@ static uint16_t get_pwm_percentage_counts(uint16_t period, uint16_t percentage) 
     return counts;
 }
 
-
+/**
+ * @brief Sets PWM used to dim the LED.
+ * @param[in] timer
+ * @param[in] channel
+ * @param[in] period
+ * @param[in] pulse
+ */
 static void setPWM(TIM_HandleTypeDef timer, uint32_t channel, uint16_t period, uint16_t pulse)
 {
  HAL_TIM_PWM_Stop(&timer, channel); // stop generation of pwm

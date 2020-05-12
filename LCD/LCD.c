@@ -5,7 +5,8 @@
  *      Author: FLL1GA
  */
 
-
+/// @file LCD.c
+/// @brief LCD functions.
 #include "LCD.h"
 #include "miniprintf.h"
 #include "i2c.h"
@@ -16,8 +17,7 @@ unsigned char RS, i2c_add, BackLight_State = LCD_BACKLIGHT;
 static const uint8_t SLAVE_ADDRESS_LCD = 0x27; // Use 8-bit address
 I2C_HandleTypeDef * hi2c;
 /**
- * Initializes the LCD and configures it
- * @param[in] I2C_Add - Address for I2C communication
+ * @brief Initializes the LCD and configures it
  */
 void LCD_Init(void)
 {
@@ -46,7 +46,7 @@ void LCD_Init(void)
 }
 
 /**
- * Writes 8 bits to the LCD
+ * @brief Writes 8 bits to the LCD
  * @param[in] Data - 8 bits Data to be written to the LCD
  */
 void IO_Expander_Write(unsigned char Data)
@@ -58,7 +58,7 @@ void IO_Expander_Write(unsigned char Data)
 }
 
 /**
- * Writes 8 bits to the LCD in 2 four-bit transactions
+ * @brief Writes 8 bits to the LCD in 2 four-bit transactions
  * @param[in] Nibble - 4 bits Data to be written to the LCD
  */
 void LCD_Write_4Bit(unsigned char Nibble)
@@ -71,7 +71,7 @@ void LCD_Write_4Bit(unsigned char Nibble)
 }
 
 /**
- * Sends a command to the LCD.
+ * @brief Sends a command to the LCD.
  * @param[in] CMD
  */
 void LCD_CMD(unsigned char CMD)
@@ -82,7 +82,7 @@ void LCD_CMD(unsigned char CMD)
 }
 
 /**
- * Sends a char to the LCD
+ * @brief Sends a char to the LCD
  * @param[in] Data
  */
 void LCD_Write_Char(char Data)
@@ -93,7 +93,7 @@ void LCD_Write_Char(char Data)
 }
 
 /**
- * Sends a string to the LCD.
+ * @brief Sends a string to the LCD.
  * @param[in] Str
  */
 void LCD_Write_String(char* Str)
@@ -103,7 +103,7 @@ void LCD_Write_String(char* Str)
 }
 
 /**
- * Sets the cursor in a given position.
+ * @brief Sets the cursor in a given position.
  * @param[in] ROW
  * @param[in] COL
  */
@@ -127,7 +127,7 @@ void LCD_Set_Cursor(unsigned char ROW, unsigned char COL)
 }
 
 /**
- * Sends a char to the LCD.
+ * @brief Sends a char to the LCD.
  * @param[in] Str
  */
 void LCD_putc(char ch)  {
@@ -135,9 +135,9 @@ void LCD_putc(char ch)  {
 }
 
 /**
- * Prints UART message
+ * @brief Prints UART message
  * param[in] format
- * param[out] rc
+ * @return rc
  */
 int LCD_printf(const char *format, ...)  {
     va_list args;

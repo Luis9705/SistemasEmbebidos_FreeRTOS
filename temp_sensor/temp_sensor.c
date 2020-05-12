@@ -7,13 +7,15 @@
 
 
 /// @file temp_sensor.c
+/// @brief Temp sensor functions.
 //  Copyright 2020 Copyright Equipo 2
 
 #include "temp_sensor.h"
 #include "main.h"
 
 /**
- * Sets up the ADC peripherals needed for the temperature sensor.
+ * @brief Sets up the ADC peripherals needed for the temperature sensor.
+ * @retval None
  */
 void temp_sensor_setup(void) {
     adc_pin_setup();
@@ -21,8 +23,8 @@ void temp_sensor_setup(void) {
 }
 
 /**
- * Reads the ADC value and returns the temperature in degrees.
- * @param[out] temperature
+ * @brief Reads the ADC value and returns the temperature in degrees.
+ * @return temperature
  */
 uint16_t temp_sensor_read(void) {
     uint16_t adc_data = adc_read();

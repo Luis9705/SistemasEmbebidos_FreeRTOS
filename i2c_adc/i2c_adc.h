@@ -4,7 +4,8 @@
  *  Created on: May 2, 2020
  *      Author: FLL1GA
  */
-
+/// @file i2c_acd.h
+/// @brief I2C ADC Header file.
 #ifndef I2C_ADC_H_
 #define I2C_ADC_H_
 

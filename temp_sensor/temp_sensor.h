@@ -4,7 +4,8 @@
  *  Created on: May 2, 2020
  *      Author: FLL1GA
  */
-
+/// @file temp_sensor.h
+/// @brief Temp sensor header.
 #ifndef TEMP_SENSOR_H_
 #define TEMP_SENSOR_H_
 
