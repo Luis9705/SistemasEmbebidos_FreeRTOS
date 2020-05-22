@@ -166,6 +166,13 @@ const osThreadAttr_t testButton_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
+/* Definitions for debouncing */
+osThreadId_t debouncingHandle;
+const osThreadAttr_t debouncing_attributes = {
+  .name = "debouncing",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 /* Definitions for tempQueue */
 osMessageQueueId_t tempQueueHandle;
 const osMessageQueueAttr_t tempQueue_attributes = {
@@ -214,7 +221,7 @@ const osSemaphoreAttr_t timeEventSemaphore_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-   
+osEventFlagsId_t buttonEventFlags;                    // event flags id
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -225,6 +232,7 @@ void displayLCDTask(void *argument);
 void displayUARTTask(void *argument);
 void UART_RX_Task(void *argument);
 void testButtonTask(void *argument);
+void debouncingTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -235,7 +243,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-       
+
   /* USER CODE END Init */
   /* Create the mutex(es) */
   /* creation of temperatureMutex */
@@ -308,8 +316,12 @@ void MX_FREERTOS_Init(void) {
   /* creation of testButton */
   testButtonHandle = osThreadNew(testButtonTask, NULL, &testButton_attributes);
 
+  /* creation of debouncing */
+  debouncingHandle = osThreadNew(debouncingTask, NULL, &debouncing_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  buttonEventFlags = osEventFlagsNew(NULL);
   /* USER CODE END RTOS_THREADS */
 
 }
@@ -730,9 +742,27 @@ void testButtonTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(10);
   }
   /* USER CODE END testButtonTask */
+}
+
+/* USER CODE BEGIN Header_debouncingTask */
+/**
+* @brief Function implementing the debouncing thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_debouncingTask */
+void debouncingTask(void *argument)
+{
+  /* USER CODE BEGIN debouncingTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END debouncingTask */
 }
 
 /* Private application code --------------------------------------------------*/

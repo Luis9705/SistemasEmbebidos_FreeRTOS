@@ -58,6 +58,7 @@ int MinTempTh = 29;
 
 uint8_t byte;
 
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

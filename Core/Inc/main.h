@@ -86,6 +86,11 @@ void Error_Handler(void);
 #define LED_MAX_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 #define I2C_ADC
+#define MIN_DOWN_BTN_MASK (1<<0)
+#define MIN_UP_BTN_MASK (1<<1)
+#define MAX_DOWN_BTN_MASK (1<<2)
+#define MAX_UP_BTN_MASK (1<<3)
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
