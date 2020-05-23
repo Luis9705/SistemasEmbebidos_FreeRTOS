@@ -455,9 +455,9 @@ void displayLCDTask(void *argument)
 	if (status == osOK) {
 
 		LCD_Set_Cursor(1, 1);
-		LCD_printf("Temp: %d%cC", temp, 223);
+		LCD_printf("Temp: %d%cC   ", temp, 223);
 		LCD_Set_Cursor(2, 1);
-		LCD_printf("LED dimm: %d%%", dimPercentage);
+		LCD_printf("LED dimm: %d%%   ", dimPercentage);
 
 	}
 
@@ -758,9 +758,31 @@ void debouncingTask(void *argument)
 {
   /* USER CODE BEGIN debouncingTask */
   /* Infinite loop */
+	uint32_t flags;
   for(;;)
   {
+	 flags = osEventFlagsWait(buttonEventFlags,
+			 	 	 	 	 MIN_DOWN_BTN_MASK |
+			 	 	 	 	 MIN_UP_BTN_MASK |
+							 MAX_DOWN_BTN_MASK |
+							 MAX_UP_BTN_MASK, osFlagsWaitAny, osWaitForever);
     osDelay(1);
+    if(flags!=0){ //A Button was pressed
+    	osDelay(10); //Wait for 10ms
+        if(flags & MIN_DOWN_BTN_MASK){ //The Button was pressed
+        	osDelay(1);
+        }
+        else if(flags & MIN_UP_BTN_MASK){ //The Button was pressed
+        	osDelay(1);
+        }
+        else if(flags & MAX_DOWN_BTN_MASK){ //The Button was pressed
+        	osDelay(1);
+        }
+        else if(flags & MAX_UP_BTN_MASK){ //The Button was pressed
+        	osDelay(1);
+        }
+    }
+
   }
   /* USER CODE END debouncingTask */
 }
