@@ -50,6 +50,13 @@ typedef enum  {
   DIM_VALUE
 } thr_Type;
 
+typedef enum  {
+  UPDATE_MIN_UP,
+  UPDATE_MIN_DOWN,
+  UPDATE_MAX_UP,
+  UPDATE_MAX_DOWN
+}update_thr_Type;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -98,6 +105,8 @@ int count = 0;
 int value_count = 0;
 char temp_value[VALUE_STR_LENGTH];
 
+char button_pressed = 0;
+
 char * error_msg = "\n\rError,  invalid data was sent. Please send a valid "
                    "temperature (integer numbers)\n\r\n\r";
 char * big_int_msg = "\n\rThis number is bigger than the "
@@ -128,7 +137,7 @@ const osThreadAttr_t temp_sensing_Ta_attributes = {
 osThreadId_t displayTempHandle;
 const osThreadAttr_t displayTemp_attributes = {
   .name = "displayTemp",
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
 /* Definitions for thermostatLEDs */
@@ -156,13 +165,6 @@ const osThreadAttr_t displayUART_attributes = {
 osThreadId_t UART_RXHandle;
 const osThreadAttr_t UART_RX_attributes = {
   .name = "UART_RX",
-  .priority = (osPriority_t) osPriorityHigh,
-  .stack_size = 128 * 4
-};
-/* Definitions for testButton */
-osThreadId_t testButtonHandle;
-const osThreadAttr_t testButton_attributes = {
-  .name = "testButton",
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
@@ -170,6 +172,13 @@ const osThreadAttr_t testButton_attributes = {
 osThreadId_t debouncingHandle;
 const osThreadAttr_t debouncing_attributes = {
   .name = "debouncing",
+  .priority = (osPriority_t) osPriorityAboveNormal,
+  .stack_size = 128 * 4
+};
+/* Definitions for updateThreshold */
+osThreadId_t updateThresholdHandle;
+const osThreadAttr_t updateThreshold_attributes = {
+  .name = "updateThreshold",
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
@@ -197,6 +206,11 @@ const osMessageQueueAttr_t thermostatLEDQueue_attributes = {
 osMessageQueueId_t RXQueueHandle;
 const osMessageQueueAttr_t RXQueue_attributes = {
   .name = "RXQueue"
+};
+/* Definitions for updateThresholdQueue */
+osMessageQueueId_t updateThresholdQueueHandle;
+const osMessageQueueAttr_t updateThresholdQueue_attributes = {
+  .name = "updateThresholdQueue"
 };
 /* Definitions for temperatureMutex */
 osMutexId_t temperatureMutexHandle;
@@ -231,8 +245,8 @@ void thermostatLEDsTask(void *argument);
 void displayLCDTask(void *argument);
 void displayUARTTask(void *argument);
 void UART_RX_Task(void *argument);
-void testButtonTask(void *argument);
 void debouncingTask(void *argument);
+void updateThresholdTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -287,6 +301,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of RXQueue */
   RXQueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &RXQueue_attributes);
 
+  /* creation of updateThresholdQueue */
+  updateThresholdQueueHandle = osMessageQueueNew (32, sizeof(uint8_t), &updateThresholdQueue_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -313,11 +330,11 @@ void MX_FREERTOS_Init(void) {
   /* creation of UART_RX */
   UART_RXHandle = osThreadNew(UART_RX_Task, NULL, &UART_RX_attributes);
 
-  /* creation of testButton */
-  testButtonHandle = osThreadNew(testButtonTask, NULL, &testButton_attributes);
-
   /* creation of debouncing */
   debouncingHandle = osThreadNew(debouncingTask, NULL, &debouncing_attributes);
+
+  /* creation of updateThreshold */
+  updateThresholdHandle = osThreadNew(updateThresholdTask, NULL, &updateThreshold_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -359,6 +376,7 @@ void tempSensingTask(void *argument)
   {
 	  osSemaphoreAcquire(timeEventSemaphoreHandle, osWaitForever);
 
+	  //button_pressed = 0;
 
 	  //sensing temp
 	  uint16_t  temp = temp_sensor_read();
@@ -729,24 +747,6 @@ void UART_RX_Task(void *argument)
   /* USER CODE END UART_RX_Task */
 }
 
-/* USER CODE BEGIN Header_testButtonTask */
-/**
-* @brief Function implementing the testButton thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_testButtonTask */
-void testButtonTask(void *argument)
-{
-  /* USER CODE BEGIN testButtonTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(10);
-  }
-  /* USER CODE END testButtonTask */
-}
-
 /* USER CODE BEGIN Header_debouncingTask */
 /**
 * @brief Function implementing the debouncing thread.
@@ -759,6 +759,7 @@ void debouncingTask(void *argument)
   /* USER CODE BEGIN debouncingTask */
   /* Infinite loop */
 	uint32_t flags;
+	uint8_t updateCmd;
   for(;;)
   {
 	 flags = osEventFlagsWait(buttonEventFlags,
@@ -766,25 +767,69 @@ void debouncingTask(void *argument)
 			 	 	 	 	 MIN_UP_BTN_MASK |
 							 MAX_DOWN_BTN_MASK |
 							 MAX_UP_BTN_MASK, osFlagsWaitAny, osWaitForever);
-    osDelay(1);
     if(flags!=0){ //A Button was pressed
-    	osDelay(10); //Wait for 10ms
+    	osDelay(200); //Wait for 10ms
+    	//HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
         if(flags & MIN_DOWN_BTN_MASK){ //The Button was pressed
-        	osDelay(1);
+        	updateCmd = UPDATE_MIN_DOWN;
+        	osEventFlagsClear(buttonEventFlags, MIN_DOWN_BTN_MASK);
         }
         else if(flags & MIN_UP_BTN_MASK){ //The Button was pressed
-        	osDelay(1);
+        	updateCmd = UPDATE_MIN_UP;
+        	osEventFlagsClear(buttonEventFlags, MIN_UP_BTN_MASK);
         }
         else if(flags & MAX_DOWN_BTN_MASK){ //The Button was pressed
-        	osDelay(1);
+        	updateCmd = UPDATE_MAX_DOWN;
+        	osEventFlagsClear(buttonEventFlags, MAX_DOWN_BTN_MASK);
         }
         else if(flags & MAX_UP_BTN_MASK){ //The Button was pressed
-        	osDelay(1);
+        	updateCmd = UPDATE_MAX_UP;
+        	osEventFlagsClear(buttonEventFlags, MAX_UP_BTN_MASK);
         }
+        osMessageQueuePut(updateThresholdQueueHandle, &updateCmd, 0U, osWaitForever);
+        button_pressed = 0;
     }
 
   }
   /* USER CODE END debouncingTask */
+}
+
+/* USER CODE BEGIN Header_updateThresholdTask */
+/**
+* @brief Function implementing the updateThreshold thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_updateThresholdTask */
+void updateThresholdTask(void *argument)
+{
+  /* USER CODE BEGIN updateThresholdTask */
+  /* Infinite loop */
+	uint8_t updateCmd ;
+	osStatus_t status;
+  for(;;)
+  {
+	status = osMessageQueueGet(updateThresholdQueueHandle, &updateCmd, NULL, osWaitForever);   // wait for message
+	if (status == osOK) {
+		switch(updateCmd){
+			case UPDATE_MAX_UP:
+				if (MaxTempTh + 1 <= MAX_THR_LIMIT) MaxTempTh += THR_STEP;
+				break;
+			case UPDATE_MAX_DOWN:
+				if (MaxTempTh > MinTempTh + 1) MaxTempTh -= THR_STEP;
+				break;
+			case UPDATE_MIN_UP:
+				if (MinTempTh + 1 < MaxTempTh) MinTempTh += THR_STEP;
+				break;
+			case UPDATE_MIN_DOWN:
+				if (MinTempTh -1  >= MIN_THR_LIMIT) MinTempTh -= THR_STEP;
+				break;
+			default:
+				break;
+		}
+	}
+  }
+  /* USER CODE END updateThresholdTask */
 }
 
 /* Private application code --------------------------------------------------*/

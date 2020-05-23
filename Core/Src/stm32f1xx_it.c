@@ -71,6 +71,8 @@ extern osEventFlagsId_t buttonEventFlags;
 extern osSemaphoreId_t timeEventSemaphoreHandle;
 extern osMessageQueueId_t RXQueueHandle;
 
+extern char button_pressed;
+
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -243,22 +245,29 @@ void USART1_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-	if(HAL_GPIO_ReadPin(MIN_UP_BTN_GPIO_Port,MIN_UP_BTN_Pin)==GPIO_PIN_SET)
-	{
-		osEventFlagsSet(buttonEventFlags, MIN_UP_BTN_MASK);
+
+	//HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
+	if(button_pressed == 0){
+		button_pressed = 1;
+		if(HAL_GPIO_ReadPin(MIN_UP_BTN_GPIO_Port,MIN_UP_BTN_Pin)==GPIO_PIN_SET)
+		{
+			osEventFlagsSet(buttonEventFlags, MIN_UP_BTN_MASK);
+		}
+		else if(HAL_GPIO_ReadPin(MIN_DOWN_BTN_GPIO_Port,MIN_DOWN_BTN_Pin)==GPIO_PIN_SET)
+		{
+			osEventFlagsSet(buttonEventFlags, MIN_DOWN_BTN_MASK);
+		}
+		else if(HAL_GPIO_ReadPin(MAX_UP_BTN_GPIO_Port,MAX_UP_BTN_Pin)==GPIO_PIN_SET)
+		{
+			osEventFlagsSet(buttonEventFlags, MAX_UP_BTN_MASK);
+		}
+		else if(HAL_GPIO_ReadPin(MAX_DOWN_BTN_GPIO_Port,MAX_DOWN_BTN_Pin)==GPIO_PIN_SET)
+		{
+			osEventFlagsSet(buttonEventFlags, MAX_DOWN_BTN_MASK);
+		}
 	}
-	else if(HAL_GPIO_ReadPin(MIN_DOWN_BTN_GPIO_Port,MIN_DOWN_BTN_Pin)==GPIO_PIN_SET)
-	{
-		osEventFlagsSet(buttonEventFlags, MIN_DOWN_BTN_MASK);
-	}
-	else if(HAL_GPIO_ReadPin(MAX_UP_BTN_GPIO_Port,MAX_UP_BTN_Pin)==GPIO_PIN_SET)
-	{
-		osEventFlagsSet(buttonEventFlags, MAX_UP_BTN_MASK);
-	}
-	else if(HAL_GPIO_ReadPin(MAX_DOWN_BTN_GPIO_Port,MAX_DOWN_BTN_Pin)==GPIO_PIN_SET)
-	{
-		osEventFlagsSet(buttonEventFlags, MAX_DOWN_BTN_MASK);
-	}
+
+
   /* USER CODE END EXTI15_10_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
