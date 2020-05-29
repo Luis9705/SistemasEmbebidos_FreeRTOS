@@ -22,6 +22,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "adc.h"
+#include "dma.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
@@ -59,6 +60,8 @@ int MinTempTh = 29;
 uint8_t byte;
 
 
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,6 +78,7 @@ int main(void)
 {
 
 	HAL_Init();
+	MX_DMA_Init();
 	SystemClock_Config();
 
 	LED_setup();
@@ -168,7 +172,10 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+  __NOP();
+}
 /* USER CODE END 4 */
 
  /**

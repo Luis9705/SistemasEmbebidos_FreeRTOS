@@ -27,6 +27,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */     
 #include <stdlib.h>
+#include "usart.h"
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -104,6 +107,8 @@ char * led_status[2] =  {"On",  "Off"};
 int count = 0;
 int value_count = 0;
 char temp_value[VALUE_STR_LENGTH];
+
+char UART_DMA_buffer[250];
 
 char button_pressed = 0;
 
@@ -494,19 +499,28 @@ void displayUARTTask(void *argument)
 {
   /* USER CODE BEGIN displayUARTTask */
   /* Infinite loop */
+	// CREATE BUFFER FOR DMA DATA SENDING
 
 	uint16_t temp ;
 	osStatus_t status;
+	char x = 'x';
+	HAL_StatusTypeDef hal_status_UART_DMA;
   for(;;)
   {
 	status = osMessageQueueGet(UARTQueueHandle, &temp, NULL, osWaitForever);   // wait for message
 	if (status == osOK) {
-
-		print("Temp: %dC,  MaxTempTh: %dC,  MinTempTh: %dC,  "
+		/*print("Temp: %dC,  MaxTempTh: %dC,  MinTempTh: %dC,  "
+                "MaxTemp: %s,  MinTemp: %s,  Led Intensity: %d%%\n\r"
+				,  temp,  MaxTempTh,  MinTempTh,  \
+				led_status[getMaxLED_STATUS()], led_status[getMinLED_STATUS()],  \
+				dimPercentage);*/
+		sprintf(UART_DMA_buffer,"Temp: %dC,  MaxTempTh: %dC,  MinTempTh: %dC,  "
                 "MaxTemp: %s,  MinTemp: %s,  Led Intensity: %d%%\n\r"
 				,  temp,  MaxTempTh,  MinTempTh,  \
 				led_status[getMaxLED_STATUS()], led_status[getMinLED_STATUS()],  \
 				dimPercentage);
+		HAL_UART_Transmit_DMA(&huart1, UART_DMA_buffer, strlen(UART_DMA_buffer));
+		//hal_status_UART_DMA = HAL_UART_Transmit_DMA(&huart1, &x, 1);
 
 	}
 
